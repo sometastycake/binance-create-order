@@ -7,6 +7,7 @@ class Config(pydantic.BaseSettings):
     BINANCE_API_KEY: str
     BINANCE_SECREY_KEY: str
     BINANCE_API_URL: str
+    BINANCE_API_TIMEOUT: int
 
     class Config:
         case_sensitive = True
