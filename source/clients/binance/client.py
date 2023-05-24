@@ -2,14 +2,31 @@ from decimal import Decimal
 from typing import Dict, Optional
 
 from source.clients.binance.connector import BinanceConnectorAbstract, DefaultBinanceConnector
+from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
 from source.clients.binance.schemas.order.schemas import CheckOrderStatusRequest, NewOrderRequest
 from source.enums import OrderSide, OrderType
 
 
 class BinanceClient:
 
-    def __init__(self, connector: Optional[BinanceConnectorAbstract] = None):
-        self._connector = connector or DefaultBinanceConnector()
+    def __init__(self, connector: Optional[BinanceConnectorAbstract] = None, **kwargs):
+        self._connector = connector or DefaultBinanceConnector(**kwargs)
+
+    async def __aenter__(self) -> 'BinanceClient':
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._connector.close()
+
+    async def exchange_info(self, symbol: str) -> ExchangeInfoResponse:
+        return await self._connector.request(
+            path='/api/v3/exchangeInfo',
+            method='GET',
+            params={
+                'symbol': symbol.upper(),
+            },
+            response_model=ExchangeInfoResponse,
+        )
 
     async def create_new_order(
             self,

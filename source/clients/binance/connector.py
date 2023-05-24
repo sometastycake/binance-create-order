@@ -19,6 +19,10 @@ BODY_TYPE = Optional[str]
 class BinanceConnectorAbstract(abc.ABC):
 
     @abc.abstractmethod
+    async def close(self) -> None:
+        ...
+
+    @abc.abstractmethod
     async def request(
             self,
             path: str,
@@ -37,6 +41,10 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
         self._aiohttp_kwargs = aiohttp_kwargs
         self._raise_if_error = raise_if_error
         self._session: Optional[aiohttp.ClientSession] = None
+
+    async def close(self) -> None:
+        if self._session and not self._session.closed:
+            await self._session.close()
 
     def _create_session(self) -> aiohttp.ClientSession:
         """

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import List, Optional
 
 import pydantic
 from pydantic import Field
@@ -30,3 +31,9 @@ class CreateOrderRequest(pydantic.BaseModel):
             'Верхний диапазон цены, в пределах которого нужно случайным образом выбрать цену'
         ),
     )
+
+
+class CreateOrderResponse(pydantic.BaseModel):
+    success: bool
+    error: Optional[str]
+    orders: Optional[List[str]]
