@@ -15,9 +15,8 @@ async def create_order(request: CreateOrderRequest):
             success=False,
             error='priceMax cannot be less than priceMin',
         )
-        return JSONResponse(status_code=400, content=response.dict(exclude_none=True))
+        return JSONResponse(status_code=400, content=response.dict())
     try:
-        response = await create_order_handler(request)
+        return await create_order_handler(request)
     except BinanceHttpError as error:
-        response = CreateOrderResponse(success=False, error=error.msg)
-    return response.dict(exclude_none=True)
+        return CreateOrderResponse(success=False, error=error.msg)
