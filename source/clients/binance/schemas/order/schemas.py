@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import validator
 
 from source.clients.binance.signature import BaseSignature
-from source.enums import OrderSide, OrderType
+from source.enums import OrderSide, OrderType, TimeInForce
 
 
 class CheckOrderStatusRequest(BaseSignature):
@@ -25,6 +25,7 @@ class NewOrderRequest(BaseSignature):
     quoteOrderQty: Optional[Decimal] = None
     price: Optional[Decimal] = None
     newClientOrderId: Optional[str] = None
+    timeInForce: Optional[TimeInForce] = None
 
     class Config:
         use_enum_values = True

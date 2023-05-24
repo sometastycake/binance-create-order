@@ -24,3 +24,9 @@ class SymbolStatus(enum.Enum):
     HALT = 'HALT'
     AUCTION_MATCH = 'AUCTION_MATCH'
     BREAK = 'BREAK'
+
+
+class TimeInForce(enum.Enum):
+    GTC = 'GTC'
+    IOC = 'IOC'
+    FOK = 'FOK'

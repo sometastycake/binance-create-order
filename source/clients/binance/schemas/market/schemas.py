@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from pydantic import BaseModel
 
@@ -20,6 +20,7 @@ class Symbol(BaseModel):
     quoteOrderQtyMarketAllowed: bool
     isSpotTradingAllowed: bool
     permissions: List[str]
+    filters: List[Dict]
 
     class Config:
         fields = {

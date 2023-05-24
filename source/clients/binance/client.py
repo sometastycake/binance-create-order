@@ -4,7 +4,7 @@ from typing import Dict, Optional
 from source.clients.binance.connector import BinanceConnectorAbstract, DefaultBinanceConnector
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
 from source.clients.binance.schemas.order.schemas import CheckOrderStatusRequest, NewOrderRequest
-from source.enums import OrderSide, OrderType
+from source.enums import OrderSide, OrderType, TimeInForce
 
 
 class BinanceClient:
@@ -37,6 +37,7 @@ class BinanceClient:
             quote_order_qty: Optional[Decimal] = None,
             price: Optional[Decimal] = None,
             new_client_order_id: Optional[str] = None,
+            time_in_force: Optional[TimeInForce] = None,
     ) -> Dict:
         request = NewOrderRequest(
             symbol=symbol,
@@ -46,6 +47,7 @@ class BinanceClient:
             quoteOrderQty=quote_order_qty,
             price=price,
             newClientOrderId=new_client_order_id,
+            timeInForce=time_in_force,
         )
         request.sign()
         return await self._connector.request('/api/v3/order', 'POST', body=request.to_query())
