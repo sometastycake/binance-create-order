@@ -13,6 +13,7 @@ HTTP_METHOD_TYPE = Literal['GET', 'POST', 'PUT']
 RESPONSE_MODEL_TYPE = Optional[Type[ResponseModel]]
 PARAMS_TYPE = Optional[Dict[str, Any]]
 RESPONSE_TYPE = Union[ResponseModel, Dict[str, Any]]
+BODY_TYPE = Optional[str]
 
 
 class BinanceConnectorAbstract(abc.ABC):
@@ -23,7 +24,7 @@ class BinanceConnectorAbstract(abc.ABC):
             path: str,
             method: HTTP_METHOD_TYPE,
             response_model: RESPONSE_MODEL_TYPE = None,
-            body: Optional[str] = None,
+            body: BODY_TYPE = None,
             params: PARAMS_TYPE = None,
             **kwargs,
     ) -> RESPONSE_TYPE:
@@ -55,7 +56,7 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
             path: str,
             method: HTTP_METHOD_TYPE,
             response_model: RESPONSE_MODEL_TYPE = None,
-            body: Optional[str] = None,
+            body: BODY_TYPE = None,
             params: PARAMS_TYPE = None,
             **kwargs,
     ) -> RESPONSE_TYPE:
