@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from source.clients.binance.connector import BinanceConnectorAbstract, DefaultBinanceConnector
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
-from source.clients.binance.schemas.order.schemas import CheckOrderStatusRequest, NewOrderRequest
+from source.clients.binance.schemas.order.schemas import CheckOrderStatusRequest, NewOrderRequest, NewOrderResponse
 from source.enums import OrderSide, OrderType, TimeInForce
 
 
@@ -38,7 +38,7 @@ class BinanceClient:
             price: Optional[Decimal] = None,
             new_client_order_id: Optional[str] = None,
             time_in_force: Optional[TimeInForce] = None,
-    ) -> Dict:
+    ) -> NewOrderResponse:
         request = NewOrderRequest(
             symbol=symbol,
             side=side,
@@ -50,7 +50,12 @@ class BinanceClient:
             timeInForce=time_in_force,
         )
         request.sign()
-        return await self._connector.request('/api/v3/order', 'POST', body=request.to_query())
+        return await self._connector.request(
+            path='/api/v3/order',
+            method='POST',
+            body=request.to_query(),
+            response_model=NewOrderResponse,
+        )
 
     async def check_order_status(
             self,

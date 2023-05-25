@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import validator
+from pydantic import BaseModel, validator
 
 from source.clients.binance.signature import BaseSignature
 from source.enums import OrderSide, OrderType, TimeInForce
@@ -33,3 +33,32 @@ class NewOrderRequest(BaseSignature):
     @validator('symbol', pre=True)
     def _symbol(cls, symbol: str) -> str:
         return symbol.upper()
+
+    @validator('quantity', 'quoteOrderQty', 'price', pre=True)
+    def _dec_value(cls, value: Optional[Decimal]) -> Optional[Decimal]:
+        if value is None:
+            return value
+        return value.quantize(Decimal('0.000000'))
+
+
+class NewOrderResponse(BaseModel):
+    symbol: str
+    orderId: int
+    orderListId: int
+    clientOrderId: Optional[str]
+    transactTime: int
+    price: Decimal
+    origQty: Decimal
+    executedQty: Decimal
+    cummulativeQuoteQty: Decimal
+    status: str
+    timeInForce: TimeInForce
+    type: OrderType
+    side: OrderSide
+    workingTime: int
+
+    @validator('price', 'origQty', 'executedQty', 'cummulativeQuoteQty', pre=True)
+    def _dec_value(cls, value: Optional[Decimal]) -> Optional[Decimal]:
+        if value is None:
+            return value
+        return value.quantize(Decimal('0.000000'))

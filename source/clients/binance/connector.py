@@ -37,9 +37,8 @@ class BinanceConnectorAbstract(abc.ABC):
 
 class DefaultBinanceConnector(BinanceConnectorAbstract):
 
-    def __init__(self, raise_if_error: bool = False, **aiohttp_kwargs):
+    def __init__(self, **aiohttp_kwargs):
         self._aiohttp_kwargs = aiohttp_kwargs
-        self._raise_if_error = raise_if_error
         self._session: Optional[aiohttp.ClientSession] = None
 
     async def close(self) -> None:
@@ -84,7 +83,7 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
             **kwargs,
         )
         content = await response.json()
-        if not response.ok and self._raise_if_error:
+        if not response.ok:
             raise BinanceHttpError(**content)
         if response_model is not None:
             return response_model.parse_obj(content)
