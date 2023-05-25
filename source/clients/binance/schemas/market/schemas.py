@@ -2,36 +2,25 @@ from typing import Dict, List
 
 from pydantic import BaseModel
 
-from source.api.orders.errors import NotFoundSymbolInExchangeInfo
+from source.clients.binance.schemas.market.errors import NotFoundSymbolInExchangeInfo
 from source.enums import OrderType, SymbolStatus
 
 
 class Symbol(BaseModel):
     symbol: str
     status: SymbolStatus
-    baseAsset: str
-    baseAssetPrecision: int
-    quote_asset: str
-    quotePrecision: int
-    quoteAssetPrecision: int
-    baseCommissionPrecision: int
-    quoteCommissionPrecision: int
-    order_types: List[OrderType]
+    orderTypes: List[OrderType]
     quoteOrderQtyMarketAllowed: bool
     isSpotTradingAllowed: bool
     permissions: List[str]
     filters: List[Dict]
 
-    class Config:
-        fields = {
-            'order_types': 'orderTypes',
-            'quote_asset': 'quoteAsset',
-        }
-
 
 class ExchangeInfoResponse(BaseModel):
-    timezone: str
-    serverTime: int
+    """
+    Поля оставил только те, которые непосредственно использую
+    Понятно, что в респонсе их гораздо больше.
+    """
     symbols: List[Symbol]
 
     def get_symbol(self, symbol: str) -> Symbol:

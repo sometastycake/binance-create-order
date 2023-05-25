@@ -1,6 +1,6 @@
-from source.api.orders.errors import NotFoundSymbolInExchangeInfo
 from source.api.orders.schemas import CreateOrderRequest, CreateOrderResponse
 from source.clients.binance.client import BinanceClient
+from source.clients.binance.schemas.market.errors import NotFoundSymbolInExchangeInfo
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
 from source.enums import OrderType, SymbolStatus
 
@@ -25,7 +25,7 @@ async def create_order_handler(request: CreateOrderRequest) -> CreateOrderRespon
                 success=False,
                 error='Wrong trading symbol status',
             )
-        if OrderType.LIMIT not in symbol.order_types:
+        if OrderType.LIMIT not in symbol.orderTypes:
             return CreateOrderResponse(
                 success=False,
                 error='Limit order disabled',
