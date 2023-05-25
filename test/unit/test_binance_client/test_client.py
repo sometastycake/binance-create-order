@@ -9,7 +9,7 @@ from source.enums import OrderType, SymbolStatus
 
 
 @pytest.mark.asyncio
-async def test_exchange_info(binance_client, faker):
+async def test_exchange_info(binance_client):
     url = config.get_binance_api('/api/v3/exchangeInfo')
     payload = {
         'symbols': [
@@ -53,7 +53,7 @@ async def test_exchange_info(binance_client, faker):
 
 
 @pytest.mark.asyncio
-async def test_exchange_info_error(binance_client, faker):
+async def test_exchange_info_error(binance_client):
     url = config.get_binance_api('/api/v3/exchangeInfo')
     payload = {
         'code': -1121,
