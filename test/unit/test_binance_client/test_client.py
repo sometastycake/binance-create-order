@@ -18,16 +18,16 @@ async def test_exchange_info(binance_client):
                 'status': 'TRADING',
                 'orderTypes': [
                     'LIMIT',
-                    'MARKET'
+                    'MARKET',
                 ],
                 'quoteOrderQtyMarketAllowed': False,
                 'isSpotTradingAllowed': True,
                 'permissions': [
-                    'SPOT'
+                    'SPOT',
                 ],
-                'filters': []
-            }
-        ]
+                'filters': [],
+            },
+        ],
     }
     with aioresponses() as mock:
         mock.get(
@@ -47,8 +47,8 @@ async def test_exchange_info(binance_client):
             quoteOrderQtyMarketAllowed=False,
             isSpotTradingAllowed=True,
             permissions=['SPOT'],
-            filters=[]
-        )
+            filters=[],
+        ),
     ]
 
 

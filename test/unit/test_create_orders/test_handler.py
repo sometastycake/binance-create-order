@@ -16,7 +16,7 @@ def get_exchange_info_payload(
         symbol: str = 'BTCUSDT',
         spot_trading_allowed: bool = True,
         symbol_status: SymbolStatus = SymbolStatus.TRADING,
-        order_types: Tuple = (OrderType.LIMIT, )
+        order_types: Tuple = (OrderType.LIMIT, ),
 ) -> ExchangeInfoResponse:
     return ExchangeInfoResponse(
         symbols=[
@@ -27,9 +27,9 @@ def get_exchange_info_payload(
                 quoteOrderQtyMarketAllowed=False,
                 isSpotTradingAllowed=spot_trading_allowed,
                 permissions=['SPOT'],
-                filters=[]
-            )
-        ]
+                filters=[],
+            ),
+        ],
     )
 
 
@@ -51,8 +51,8 @@ def create_order_request() -> CreateOrderRequest:
         (get_exchange_info_payload(order_types=(OrderType.STOP_LOSS, )), 'Limit order disabled'),
         (get_exchange_info_payload(symbol_status=SymbolStatus.HALT), 'Wrong trading symbol status'),
         (get_exchange_info_payload(spot_trading_allowed=False), 'Spot trading disabled'),
-        (get_exchange_info_payload(symbol='BTCUST'), 'Not found trading symbol')
-    ]
+        (get_exchange_info_payload(symbol='BTCUST'), 'Not found trading symbol'),
+    ],
 )
 async def test_create_order_handler_error(payload, error):
     url = config.get_binance_api('/api/v3/exchangeInfo')
