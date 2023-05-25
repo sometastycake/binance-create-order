@@ -36,3 +36,27 @@ INFO:     Started server process [94273]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 ```
+
+## Примеры запросов
+
+Можно сделать через `curl`
+
+```
+curl -X 'POST' \
+  'http://127.0.0.1:8000/order/create' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "symbol": "dogeusdt",
+  "volume": 80,
+  "number": 1,
+  "amountDif": 2,
+  "side": "SELL",
+  "priceMin": 0.068,
+  "priceMax": 0.078
+}'
+```
+
+Или через `swagger`, расположенный по адресу `http://127.0.0.1:8000/swagger`
+
+![img.png](img.png)
