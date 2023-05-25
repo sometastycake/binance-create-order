@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Type
 
 from pydantic import BaseModel
 
@@ -14,6 +14,12 @@ class Symbol(BaseModel):
     isSpotTradingAllowed: bool
     permissions: List[str]
     filters: List[Dict]
+
+    def get_filter(self, filter_name: str, filter_model: Type[BaseModel]) -> BaseModel:
+        for _filter in self.filters:
+            if _filter['filterType'] == filter_name:
+                return filter_model.parse_obj(_filter)
+        raise ValueError(f'Not found {filter_name} filter')
 
 
 class ExchangeInfoResponse(BaseModel):
