@@ -36,3 +36,16 @@ class LotSizeFilter(BaseModel):
     @validator('minQty', 'maxQty', 'stepSize')
     def _dec_value(cls, value: Decimal) -> Decimal:
         return value.quantize(Decimal('0.000000'))
+
+
+class PercentPriceBySideFilter(BaseModel):
+    filterType: str
+    bidMultiplierUp: Decimal
+    bidMultiplierDown: Decimal
+    askMultiplierUp: Decimal
+    askMultiplierDown: Decimal
+    avgPriceMins: int
+
+    @validator('bidMultiplierUp', 'bidMultiplierDown', 'askMultiplierUp', 'askMultiplierDown')
+    def _dec_value(cls, value: Decimal) -> Decimal:
+        return value.quantize(Decimal('0.000000'))

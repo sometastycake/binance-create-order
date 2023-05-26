@@ -58,7 +58,7 @@ def mock_api_trading_status_response(mock: aioresponses) -> None:
     ],
 )
 @freezegun.freeze_time(datetime.datetime(2023, 1, 1, 10, 0, 0, 0))
-async def test_create_order_handler_error(payload, error):
+async def test_create_order_handler_error(payload, error, binance_client):
     request = CreateOrderRequest(
         symbol='btcusdt',
         volume=Decimal(10),
@@ -71,5 +71,5 @@ async def test_create_order_handler_error(payload, error):
     with aioresponses() as mock:
         mock_exchange_info_response(mock, payload)
         mock_api_trading_status_response(mock)
-        response = await create_order_handler(request)
+        response = await create_order_handler(request, binance_client)
     assert response == CreateOrderResponse(success=False, error=error)

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from source.clients.binance.connector import BinanceConnectorAbstract, DefaultBinanceConnector
-from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
+from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, LatestPriceResponse
 from source.clients.binance.schemas.order.schemas import NewOrderRequest, NewOrderResponse
 from source.clients.binance.schemas.wallet.schemas import APITradingStatusResponse
 from source.clients.binance.signature import BaseSignature
@@ -45,4 +45,14 @@ class BinanceClient:
             method='POST',
             body=request.to_query(),
             response_model=NewOrderResponse,
+        )
+
+    async def get_latest_price(self, symbol: str) -> LatestPriceResponse:
+        return await self._connector.request(
+            path='/api/v3/ticker/price',
+            method='GET',
+            params={
+                'symbol': symbol.upper(),
+            },
+            response_model=LatestPriceResponse,
         )
