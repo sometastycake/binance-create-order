@@ -55,10 +55,13 @@ async def create_order_handler(request: CreateOrderRequest) -> CreateOrderRespon
                 success=False,
                 error='Limit order disabled',
             )
+
         notional = _get_notional_filter(symbol)
         lot = _get_lot_size_filter(symbol)
 
-        # TODO mock data
+        quantity = notional.minNotional / request.priceMin
+        quantity = (quantity + lot.stepSize) - (quantity + lot.stepSize) % lot.stepSize
+
         response = await client.create_new_order(
             request=NewOrderRequest(
                 symbol=request.symbol, side=request.side, type=OrderType.LIMIT,

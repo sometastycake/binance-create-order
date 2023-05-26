@@ -7,7 +7,7 @@ import freezegun
 import pytest
 from aioresponses import aioresponses
 
-from source.api.orders.handler import create_order_handler
+from source.api.orders.handlers.create_order import create_order_handler
 from source.api.orders.schemas import CreateOrderRequest, CreateOrderResponse
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, Symbol
 from source.clients.binance.schemas.wallet.schemas import APITradingStatus, APITradingStatusResponse
