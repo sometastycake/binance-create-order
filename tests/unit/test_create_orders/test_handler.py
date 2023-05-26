@@ -43,7 +43,7 @@ def mock_api_trading_status_response(mock: aioresponses) -> None:
     response = APITradingStatusResponse(
         data=APITradingStatus(
             isLocked=False,
-        )
+        ),
     )
     mock.get(url=re.compile(r'.+apiTradingStatus.+$'), body=response.json())
 

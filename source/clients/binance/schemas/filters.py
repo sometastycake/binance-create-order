@@ -3,6 +3,17 @@ from decimal import Decimal
 from pydantic import BaseModel, validator
 
 
+class PriceFilter(BaseModel):
+    filterType: str
+    minPrice: Decimal
+    maxPrice: Decimal
+    tickSize: Decimal
+
+    @validator('minPrice', 'maxPrice', 'tickSize')
+    def _dec_value(cls, value: Decimal) -> Decimal:
+        return value.quantize(Decimal('0.000000'))
+
+
 class NotionalFilter(BaseModel):
     filterType: str
     minNotional: Decimal

@@ -1,9 +1,10 @@
+import random
 from decimal import Decimal
 from typing import cast
 
 from source.api.orders.schemas import CreateOrderRequest, CreateOrderResponse
 from source.clients.binance.client import BinanceClient
-from source.clients.binance.schemas.filters import LotSizeFilter, NotionalFilter
+from source.clients.binance.schemas.filters import LotSizeFilter, NotionalFilter, PriceFilter
 from source.clients.binance.schemas.market.errors import NotFoundSymbolInExchangeInfo
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, Symbol
 from source.clients.binance.schemas.order.schemas import NewOrderRequest
@@ -18,6 +19,10 @@ def _get_notional_filter(symbol: Symbol) -> NotionalFilter:
 
 def _get_lot_size_filter(symbol: Symbol) -> LotSizeFilter:
     return cast(LotSizeFilter, symbol.get_filter('LOT_SIZE', LotSizeFilter))
+
+
+def _get_price_filter(symbol: Symbol) -> PriceFilter:
+    return cast(PriceFilter, symbol.get_filter('PRICE_FILTER', PriceFilter))
 
 
 async def create_order_handler(request: CreateOrderRequest) -> CreateOrderResponse:
@@ -56,16 +61,34 @@ async def create_order_handler(request: CreateOrderRequest) -> CreateOrderRespon
                 error='Limit order disabled',
             )
 
-        notional = _get_notional_filter(symbol)
-        lot = _get_lot_size_filter(symbol)
+        # Параметры ордера, такие как price и quantity должны следовать условиям
+        # которые описаны в фильтрах
+        # https://binance-docs.github.io/apidocs/spot/en/#filters
 
-        quantity = notional.minNotional / request.priceMin
-        quantity = (quantity + lot.stepSize) - (quantity + lot.stepSize) % lot.stepSize
+        notional_filter = _get_notional_filter(symbol)
+        lot_filter = _get_lot_size_filter(symbol)
+        price_filter = _get_price_filter(symbol)
 
-        response = await client.create_new_order(
-            request=NewOrderRequest(
-                symbol=request.symbol, side=request.side, type=OrderType.LIMIT,
-                quantity=Decimal(85.6), price=Decimal(0.071), timeInForce=TimeInForce.GTC,
+        step_size = lot_filter.stepSize
+        tick_size = price_filter.tickSize
+
+        quantity = notional_filter.minNotional / request.priceMin
+        quantity = (quantity + step_size) - (quantity + step_size) % step_size
+
+        orders = []
+        for _ in range(request.number):
+            # В ТЗ в описании схемы данных сказано, что цена выбирается случайным образом
+            price = random.uniform(
+                a=float(request.priceMin),
+                b=float(request.priceMax),
             )
-        )
+            price = Decimal(price).quantize(Decimal('0.000000'))
+            price = (price + tick_size) - (price + tick_size) % tick_size
+
+            response = await client.create_new_order(
+                request=NewOrderRequest(
+                    symbol=request.symbol, side=request.side, type=OrderType.LIMIT,
+                    quantity=quantity, price=price, timeInForce=TimeInForce.GTC,
+                ),
+            )
     return CreateOrderResponse(success=True)
