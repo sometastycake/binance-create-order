@@ -11,6 +11,7 @@ from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, 
 from source.clients.binance.schemas.order.schemas import NewOrderRequest, NewOrderResponse
 from source.clients.binance.schemas.wallet.schemas import APITradingStatusResponse
 from source.clients.binance.signature import BaseSignature
+from source.config import config
 from source.enums import OrderSide, OrderType, SymbolStatus, TimeInForce
 
 
@@ -66,7 +67,7 @@ async def test_exchange_info_error(binance_client):
 
 @pytest.mark.asyncio
 @freezegun.freeze_time(datetime.datetime(2023, 1, 1, 10, 0, 0, 0))
-async def test_get_api_trading_status(binance_client):
+async def test_get_api_trading_status(binance_client, monkeypatch):
     with aioresponses() as mock:
         mock.get(
             url=re.compile(r'.+apiTradingStatus.+$'),
@@ -75,9 +76,10 @@ async def test_get_api_trading_status(binance_client):
             },
         )
         params = BaseSignature()
+        monkeypatch.setattr(config, 'BINANCE_SECRET_KEY', 'SECRET')
         response = await binance_client.get_api_trading_status(params)
         assert params.recvWindow == 5000
-        assert params.signature == '83a2e222c61c3f31d3abc97c012d21433a4c1959e59a1247621c3cf82dbdbac2'
+        assert params.signature == '222e7d13bcb8e8acb1ca6a716c864f1965e74807b9770bd4b5ed50057c256bef'
         assert isinstance(response, APITradingStatusResponse)
         assert response.data.isLocked is True
 
@@ -134,7 +136,7 @@ async def test_get_latest_price_error(binance_client):
 
 @pytest.mark.asyncio
 @freezegun.freeze_time(datetime.datetime(2023, 1, 1, 10, 0, 0, 0))
-async def test_create_new_order(binance_client):
+async def test_create_new_order(binance_client, monkeypatch):
     payload = {
         'symbol': 'btcusdt',
         'orderId': 1,
@@ -150,6 +152,7 @@ async def test_create_new_order(binance_client):
             url=re.compile(r'.+/v3/order'),
             payload=payload,
         )
+        monkeypatch.setattr(config, 'BINANCE_SECRET_KEY', 'SECRET')
         request = NewOrderRequest(
             symbol='btcusdt',
             side=OrderSide.SELL,
@@ -159,7 +162,7 @@ async def test_create_new_order(binance_client):
         )
         response = await binance_client.create_new_order(request)
         assert request.recvWindow == 5000
-        assert request.signature == '54dd7bf23b33c729a0e92e44f401d642c5b62e4e0fb51a4ebe2405f515264dab'
+        assert request.signature == '8142f383586a2b172d740c3dd946a297c549b784079492ab46c45b959db7679c'
         assert response == NewOrderResponse(
             symbol='btcusdt',
             orderId=1,

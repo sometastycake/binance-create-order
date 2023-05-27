@@ -20,29 +20,26 @@ def get_exchange_info_payload(
         symbol_status: SymbolStatus = SymbolStatus.TRADING,
         order_types: Tuple = (OrderType.LIMIT, ),
 ) -> ExchangeInfoResponse:
-    return ExchangeInfoResponse(
-        symbols=[
-            Symbol(
-                symbol=symbol,
-                status=symbol_status,
-                orderTypes=list(order_types),
-                quoteOrderQtyMarketAllowed=False,
-                isSpotTradingAllowed=spot_trading_allowed,
-                permissions=['SPOT'],
-                filters=[],
-            ),
-        ],
+    symbol = Symbol(
+        symbol=symbol,
+        status=symbol_status,
+        orderTypes=list(order_types),
+        quoteOrderQtyMarketAllowed=False,
+        isSpotTradingAllowed=spot_trading_allowed,
+        permissions=['SPOT'],
+        filters=[],
     )
+    return ExchangeInfoResponse(symbols=[symbol])
 
 
 def mock_exchange_info_response(mock: aioresponses, payload: ExchangeInfoResponse):
     mock.get(url=re.compile(r'.+exchangeInfo.+$'), body=payload.json())
 
 
-def mock_api_trading_status_response(mock: aioresponses) -> None:
+def mock_api_trading_status_response(mock: aioresponses, status: bool = False) -> None:
     response = APITradingStatusResponse(
         data=APITradingStatus(
-            isLocked=False,
+            isLocked=status,
         ),
     )
     mock.get(url=re.compile(r'.+apiTradingStatus.+$'), body=response.json())
@@ -58,7 +55,7 @@ def mock_api_trading_status_response(mock: aioresponses) -> None:
     ],
 )
 @freezegun.freeze_time(datetime.datetime(2023, 1, 1, 10, 0, 0, 0))
-async def test_create_order_handler_error(payload, error, binance_client):
+async def test_create_order_handler_exchange_info_error(payload, error, binance_client):
     request = CreateOrderRequest(
         symbol='btcusdt',
         volume=Decimal(10),
@@ -73,3 +70,23 @@ async def test_create_order_handler_error(payload, error, binance_client):
         mock_api_trading_status_response(mock)
         response = await create_order_handler(request, binance_client)
     assert response == CreateOrderResponse(success=False, error=error)
+
+
+@pytest.mark.asyncio
+async def test_create_order_handler_api_status_disabled(binance_client):
+    request = CreateOrderRequest(
+        symbol='btcusdt',
+        volume=Decimal(10),
+        number=5,
+        amountDif=Decimal(5),
+        side=OrderSide.BUY,
+        priceMin=Decimal(2),
+        priceMax=Decimal(5),
+    )
+    with aioresponses() as mock:
+        mock_api_trading_status_response(mock, True)
+        response = await create_order_handler(request, binance_client)
+        assert response == CreateOrderResponse(
+            success=False,
+            error='API trading function is locked',
+        )
