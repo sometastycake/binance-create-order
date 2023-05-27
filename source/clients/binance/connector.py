@@ -71,7 +71,9 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
         Send request to Binance API.
         """
         if self._session is None:
+            # TODO подумать над пересозданием сессии в случае потери коннекта
             self._session = self._create_session()
+        # TODO сделать декоратор для ретраев в случае TimeoutError
         response = await self._session.request(
             url=config.get_binance_api(path),
             method=method,
@@ -83,6 +85,9 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
             **kwargs,
         )
         content = await response.json()
+        # TODO нужно более гибко резолвить 40х, 50х
+        # так как могут быть ошибки, но не было времени подумать, как
+        # сделать для всех кейсов =)
         if not response.ok:
             raise BinanceHttpError(**content)
         if response_model is not None:
