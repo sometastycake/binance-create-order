@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from source.clients.binance.connector import BinanceConnectorAbstract, DefaultBinanceConnector
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, LatestPriceResponse
@@ -9,7 +9,7 @@ from source.clients.binance.signature import BaseSignature
 
 class BinanceClient:
 
-    def __init__(self, connector: Optional[BinanceConnectorAbstract] = None, **kwargs):
+    def __init__(self, connector: Optional[BinanceConnectorAbstract] = None, **kwargs: Any):
         self._connector = connector or DefaultBinanceConnector(**kwargs)
 
     async def __aenter__(self) -> 'BinanceClient':

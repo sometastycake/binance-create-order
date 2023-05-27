@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Dict, List, Type, cast
+from typing import Dict, List, Type
 
 from pydantic import BaseModel, Field, validator
 
@@ -25,23 +25,19 @@ class Symbol(BaseModel):
 
     @property
     def notional_filter(self) -> NotionalFilter:
-        model = NotionalFilter
-        return cast(model, self._get_filter('NOTIONAL', model))
+        return self._get_filter('NOTIONAL', NotionalFilter)  # type:ignore
 
     @property
     def lot_size_filter(self) -> LotSizeFilter:
-        model = LotSizeFilter
-        return cast(model, self._get_filter('LOT_SIZE', model))
+        return self._get_filter('LOT_SIZE', LotSizeFilter)  # type:ignore
 
     @property
     def price_filter(self) -> PriceFilter:
-        model = PriceFilter
-        return cast(model, self._get_filter('PRICE_FILTER', model))
+        return self._get_filter('PRICE_FILTER', PriceFilter)  # type:ignore
 
     @property
     def percent_price_by_side_filter(self) -> PercentPriceBySideFilter:
-        model = PercentPriceBySideFilter
-        return cast(model, self._get_filter('PERCENT_PRICE_BY_SIDE', model))
+        return self._get_filter('PERCENT_PRICE_BY_SIDE', PercentPriceBySideFilter)  # type:ignore
 
 
 class ExchangeInfoResponse(BaseModel):

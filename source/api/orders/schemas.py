@@ -1,8 +1,8 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import pydantic
-from pydantic import Field
+from pydantic import Field, root_validator
 
 from source.enums import OrderSide
 
@@ -20,17 +20,27 @@ class CreateOrderRequest(pydantic.BaseModel):
     )
     side: OrderSide = Field(description='Сторона торговли (SELL или BUY)')
     priceMin: Decimal = Field(
-        ge=0,
+        gt=0,
         description=(
             'Нижний диапазон цены, в пределах которого нужно случайным образом выбрать цену'
         ),
     )
     priceMax: Decimal = Field(
-        ge=0,
+        gt=0,
         description=(
             'Верхний диапазон цены, в пределах которого нужно случайным образом выбрать цену'
         ),
     )
+
+    @root_validator
+    def _root(cls, values: Dict) -> Dict:
+        if 'priceMin' not in values or 'priceMax' not in values:
+            return values
+        price_min = values['priceMin']
+        price_max = values['priceMax']
+        if price_min > price_max:
+            raise ValueError('priceMax cannot be less than priceMin')
+        return values
 
 
 class CreateOrderData(pydantic.BaseModel):

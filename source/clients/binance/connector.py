@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, Literal, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Literal, Optional, Type, TypeVar
 
 import aiohttp
 from pydantic import BaseModel
@@ -12,7 +12,6 @@ ResponseModel = TypeVar('ResponseModel', bound=BaseModel)
 HTTP_METHOD_TYPE = Literal['GET', 'POST', 'PUT']
 RESPONSE_MODEL_TYPE = Optional[Type[ResponseModel]]
 PARAMS_TYPE = Optional[Dict[str, Any]]
-RESPONSE_TYPE = Union[ResponseModel, Dict[str, Any]]
 BODY_TYPE = Optional[str]
 
 
@@ -30,8 +29,8 @@ class BinanceConnectorAbstract(abc.ABC):
             response_model: RESPONSE_MODEL_TYPE = None,
             body: BODY_TYPE = None,
             params: PARAMS_TYPE = None,
-            **kwargs,
-    ) -> RESPONSE_TYPE:
+            **kwargs: Any,
+    ) -> ResponseModel:
         ...
 
 
@@ -65,15 +64,13 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
             response_model: RESPONSE_MODEL_TYPE = None,
             body: BODY_TYPE = None,
             params: PARAMS_TYPE = None,
-            **kwargs,
-    ) -> RESPONSE_TYPE:
+            **kwargs: Any,
+    ) -> ResponseModel:
         """
         Send request to Binance API.
         """
         if self._session is None:
-            # TODO подумать над пересозданием сессии в случае потери коннекта
             self._session = self._create_session()
-        # TODO сделать декоратор для ретраев в случае TimeoutError
         response = await self._session.request(
             url=config.get_binance_api(path),
             method=method,
@@ -85,9 +82,7 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
             **kwargs,
         )
         content = await response.json()
-        # TODO нужно более гибко резолвить 40х, 50х
-        # так как могут быть ошибки, но не было времени подумать, как
-        # сделать для всех кейсов =)
+        # TODO нужно более гибко резолвить 40х, 50х так как могут быть ошибки
         if not response.ok:
             raise BinanceHttpError(**content)
         if response_model is not None:

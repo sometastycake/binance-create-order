@@ -1,6 +1,6 @@
 import random
 from decimal import Decimal
-from typing import List
+from typing import List, Tuple
 
 from source.api.orders.handlers.errors import TooLowRequestedVolumeError, WrongPriceRangeError
 from source.api.orders.schemas import CreateOrderData, CreateOrderRequest, CreateOrderResponse
@@ -25,11 +25,13 @@ def _calculate_price(price_min: Decimal, price_max: Decimal, tick_size: Decimal)
         a=float(price_min),
         b=float(price_max),
     )
-    price = Decimal(price).quantize(Decimal('0.000000'))
-    return (price + tick_size) - (price + tick_size) % tick_size
+    price_dec = Decimal(price).quantize(Decimal('0.000000'))
+    return (price_dec + tick_size) - (price_dec + tick_size) % tick_size
 
 
-def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step_size: Decimal, volume: Decimal):
+def _calculate_lots(
+        prices: List[Decimal], min_quantity: Decimal, step_size: Decimal, volume: Decimal,
+) -> List[Decimal]:
     """
     На данном этапе имеем список цен prices и теперь нужно для каждой цены
     рассчитать значение quantity, т.е. необходимо выполнение условия
@@ -38,7 +40,7 @@ def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step_size: Dec
     lots = []
     for _ in range(len(prices)):
         lots.append(min_quantity)  # Изначально каждому Pi присваиваем минимальное quantity
-    current_volume = 0
+    current_volume = Decimal(0)
     for price, quantity in zip(prices, lots):
         current_volume += price * quantity  # Считаем получившийся объем
     if volume < current_volume:
@@ -47,7 +49,9 @@ def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step_size: Dec
     return lots
 
 
-async def _process_price_range(request: CreateOrderRequest, client: BinanceClient, symbol: Symbol):
+async def _process_price_range(
+        request: CreateOrderRequest, client: BinanceClient, symbol: Symbol,
+) -> Tuple[Decimal, Decimal]:
     """
     Для лимитных ордеров есть допустимый диапазон цен, по
     которым мы можем закинуть ордер в стакан.

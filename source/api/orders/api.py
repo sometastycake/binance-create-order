@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from starlette.responses import JSONResponse
 
 from source.api.orders.handlers.create_order import create_order_handler
 from source.api.orders.schemas import CreateOrderRequest, CreateOrderResponse
@@ -11,15 +10,8 @@ orders_router = APIRouter(prefix='/order')
 
 
 @orders_router.post(path='/create', response_model=CreateOrderResponse)
-async def create_order(request: CreateOrderRequest):
+async def create_order(request: CreateOrderRequest) -> CreateOrderResponse:
     logger.info('Request %s' % request)
-    # TODO в логировании нужен некоторый trace_id, по которому удобно собирать логи одного реквеста
-    if request.priceMin > request.priceMax:
-        response = CreateOrderResponse(
-            success=False,
-            error='priceMax cannot be less than priceMin',
-        )
-        return JSONResponse(status_code=400, content=response.dict())
     try:
         async with BinanceClient() as client:
             return await create_order_handler(request, client)
