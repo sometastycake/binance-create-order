@@ -33,7 +33,13 @@ class CreateOrderRequest(pydantic.BaseModel):
     )
 
 
+class CreateOrderData(pydantic.BaseModel):
+    order_id: int
+    price: Decimal
+    transact_time: int
+
+
 class CreateOrderResponse(pydantic.BaseModel):
     success: bool
     error: Optional[str]
-    orders: Optional[List[str]]
+    orders: Optional[List[CreateOrderData]]

@@ -1,8 +1,9 @@
 import random
 from decimal import Decimal
+from typing import List
 
-from source.api.orders.handlers.errors import WrongPriceRangeError
-from source.api.orders.schemas import CreateOrderRequest, CreateOrderResponse
+from source.api.orders.handlers.errors import TooLowRequestedVolumeError, WrongPriceRangeError
+from source.api.orders.schemas import CreateOrderRequest, CreateOrderResponse, CreateOrderData
 from source.clients.binance.client import BinanceClient
 from source.clients.binance.schemas.market.errors import NotFoundSymbolInExchangeInfo
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, Symbol
@@ -12,9 +13,13 @@ from source.enums import OrderSide, OrderType, SymbolStatus, TimeInForce
 from source.logger import logger
 
 
-def _generate_price(price_min: Decimal, price_max: Decimal, tick_size: Decimal) -> Decimal:
+def _calculate_price(price_min: Decimal, price_max: Decimal, tick_size: Decimal) -> Decimal:
     """
-    В ТЗ в описании схемы сказано, что цена выбирается случайным образом.
+    Вычисление цен ордеров
+    Исхожу из того, что в ТЗ в описании схемы сказано, что цены из диапазона
+    берутся случайным образом.
+    Дополнительно, значение цены должно удовлетворять условиям из PRICE_FILTER, т.е.
+    price % tick_size = 0
     """
     price = random.uniform(
         a=float(price_min),
@@ -24,21 +29,48 @@ def _generate_price(price_min: Decimal, price_max: Decimal, tick_size: Decimal) 
     return (price + tick_size) - (price + tick_size) % tick_size
 
 
+def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step_size: Decimal, volume: Decimal):
+    """
+    На данном этапе имеем список цен prices и теперь нужно для каждой цены
+    рассчитать значение quantity, т.е. необходимо выполнение условия
+    Σ(Pi * Qi) = volume, где Pi - цена, Qi - quantity
+    """
+    lots = []
+    # Изначально каждому Pi присваиваем минимальное quantity
+    for _ in range(len(prices)):
+        lots.append(min_quantity)
+    current_volume = 0
+    # Считаем получившийся объем
+    for price, quantity in zip(prices, lots):
+        current_volume += price * quantity
+    # Если вдруг запрошенный объем ниже рассчитанного объема
+    if volume < current_volume:
+        raise TooLowRequestedVolumeError
+    return lots
+
+
 async def _process_price_range(request: CreateOrderRequest, client: BinanceClient, symbol: Symbol):
     """
     Для лимитных ордеров есть допустимый диапазон цен, по
     которым мы можем закинуть ордер в стакан.
+    Есть случаи, при которых мы не можем залить ордера в стакан
+    Например
+    Диапазон цен, пришедший с api: [2; 5] или [9; 11]
+    Допустимый диапазон цен в стакане: [6; 8]
+    В данном случае по нашему диапазону не сможем создать ордера и должны выдать ошибку
     """
-    _filter = symbol.percent_price_by_side_filter
+    Filter = symbol.percent_price_by_side_filter
 
     price = await client.get_latest_price(request.symbol)
 
+    # См. фильтр PERCENT_PRICE_BY_SIDE
+    # https://binance-docs.github.io/apidocs/spot/en/#filters
     if request.side is OrderSide.BUY:
-        price_up = price.price * _filter.bidMultiplierUp
-        price_down = price.price * _filter.bidMultiplierDown
+        price_up = price.price * Filter.bidMultiplierUp
+        price_down = price.price * Filter.bidMultiplierDown
     else:
-        price_up = price.price * _filter.askMultiplierUp
-        price_down = price.price * _filter.askMultiplierDown
+        price_up = price.price * Filter.askMultiplierUp
+        price_down = price.price * Filter.askMultiplierDown
 
     # Если диапазон с api полностью лежит за пределами допустимого диапазона без пересечений
     if request.priceMax <= price_down or request.priceMin >= price_up:
@@ -46,6 +78,7 @@ async def _process_price_range(request: CreateOrderRequest, client: BinanceClien
 
     # Если допустимый диапазон цен пересекается с диапазоном, полученным в api
     # то корректируем границы цен
+    # TODO нужно больше контекста задачи, это лишь мое мнение, что нужно так сделать
     price_min = price_down if request.priceMin < price_down else request.priceMin
     price_max = price_up if request.priceMax > price_up else request.priceMax
 
@@ -80,6 +113,12 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
             success=False,
             error='Wrong trading symbol status',
         )
+
+    # TODO по хорошему нужно проверки выше выносить в middleware
+    # так как они выглядят как общие для некоторого ряда api
+
+    # Исхожу из того, что в схеме есть диапазон цен, по которому нужно раскинуть ордера
+    # значит MARKET ордер нам не подходит и нужно использовать лимитку
     if OrderType.LIMIT not in symbol.orderTypes:
         logger.warning(f'Limit order disabled symbol={request.symbol}')
         return CreateOrderResponse(
@@ -99,30 +138,36 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
     tick_size = symbol.price_filter.tickSize
 
     # Минимально возможное значение quantity
-    quantity = symbol.notional_filter.minNotional / request.priceMin
-    quantity = (quantity + step_size) - (quantity + step_size) % step_size
-
-    if request.volume < price_min * quantity:
-        return CreateOrderResponse(
-            success=False,
-            error='Too low requested volume'
-        )
+    min_quantity = symbol.notional_filter.minNotional / request.priceMin
+    min_quantity = (min_quantity + step_size) - (min_quantity + step_size) % step_size
 
     prices = []
     for _ in range(request.number):
-        prices.append(_generate_price(price_min, price_max, tick_size))
+        prices.append(_calculate_price(price_min, price_max, tick_size))
 
-    # На данном этапе имеем список цен prices и теперь нужно
-    # для каждой цены рассчитать значение quantity, т.е.
-    # sum(Pi * Qi) = volume, где Pi - цена, Qi - quantity
+    try:
+        lots = _calculate_lots(prices, min_quantity, step_size, request.volume)
+    except TooLowRequestedVolumeError:
+        return CreateOrderResponse(
+            success=False,
+            error='Too low requested volume',
+        )
 
     orders = []
-    volume = request.volume
-    for price in prices:
+    for price, quantity in zip(prices, lots):
+        # TODO тут остаются неопределенные моменты
+        # Например, если ордеров много и есть вариант попасть на rate limits
+        # по этой же причине нельзя закинуть реквесты в asyncio.gather
+        # и вызывающий api код может попасть на 504 gateway timeout
         response = await client.create_new_order(
             request=NewOrderRequest(
                 symbol=request.symbol, side=request.side, type=OrderType.LIMIT,
                 quantity=quantity, price=price, timeInForce=TimeInForce.GTC,
             ),
         )
-    return CreateOrderResponse(success=True)
+        orders.append(CreateOrderData(
+            order_id=response.orderId,
+            price=response.price,
+            transact_time=response.transactTime,
+        ))
+    return CreateOrderResponse(success=True, orders=orders)

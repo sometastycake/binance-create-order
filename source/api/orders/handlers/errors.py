@@ -1,2 +1,6 @@
 class WrongPriceRangeError(Exception):
     ...
+
+
+class TooLowRequestedVolumeError(Exception):
+    ...
