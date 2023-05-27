@@ -86,8 +86,16 @@ async def _process_price_range(request: CreateOrderRequest, client: BinanceClien
 
 
 async def create_order_handler(request: CreateOrderRequest, client: BinanceClient) -> CreateOrderResponse:
+    """
+    Разбиение request.volume объема на request.number ордеров
+
+    Важно:
+        Не полностью понял ТЗ, особенно момент с amountDif, потому
+        сделал просто разбиение обшего объема на request.number ордеров =(
+    """
     status: APITradingStatusResponse = await client.get_api_trading_status()
     if status.data.isLocked:
+        logger.error('API trading function is locked')
         return CreateOrderResponse(
             success=False,
             error='API trading function is locked',
@@ -96,19 +104,19 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
     try:
         symbol = exchange_info.get_symbol(request.symbol.upper())
     except NotFoundSymbolInExchangeInfo:
-        logger.warning(f'Not found symbol in exchange info symbol={request.symbol}')
+        logger.error('Not found symbol in exchange info')
         return CreateOrderResponse(
             success=False,
             error='Not found trading symbol',
         )
     if not symbol.isSpotTradingAllowed:
-        logger.warning(f'Spot trading disabled symobl={request.symbol}')
+        logger.error('Spot trading disabled')
         return CreateOrderResponse(
             success=False,
             error='Spot trading disabled',
         )
     if symbol.status in (SymbolStatus.HALT, SymbolStatus.BREAK, SymbolStatus.AUCTION_MATCH):
-        logger.warning(f'Wrong trading symbol status symbol={request.symbol}')
+        logger.error('Wrong trading symbol status')
         return CreateOrderResponse(
             success=False,
             error='Wrong trading symbol status',
@@ -120,7 +128,7 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
     # Исхожу из того, что в схеме есть диапазон цен, по которому нужно раскинуть ордера
     # значит MARKET ордер нам не подходит и нужно использовать лимитку
     if OrderType.LIMIT not in symbol.orderTypes:
-        logger.warning(f'Limit order disabled symbol={request.symbol}')
+        logger.error('Limit order disabled')
         return CreateOrderResponse(
             success=False,
             error='Limit order disabled',
@@ -129,6 +137,7 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
     try:
         price_min, price_max = await _process_price_range(request, client, symbol)
     except WrongPriceRangeError:
+        logger.error('Wrong price range')
         return CreateOrderResponse(
             success=False,
             error='Wrong price range',
@@ -148,6 +157,7 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
     try:
         lots = _calculate_lots(prices, min_quantity, step_size, request.volume)
     except TooLowRequestedVolumeError:
+        logger.error('Too low requested volume')
         return CreateOrderResponse(
             success=False,
             error='Too low requested volume',
@@ -165,9 +175,11 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
                 quantity=quantity, price=price, timeInForce=TimeInForce.GTC,
             ),
         )
-        orders.append(CreateOrderData(
+        data = CreateOrderData(
             order_id=response.orderId,
             price=response.price,
             transact_time=response.transactTime,
-        ))
+        )
+        logger.info('Order %s' % data)
+        orders.append(data)
     return CreateOrderResponse(success=True, orders=orders)

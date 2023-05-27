@@ -13,6 +13,7 @@ orders_router = APIRouter(prefix='/order')
 @orders_router.post(path='/create', response_model=CreateOrderResponse)
 async def create_order(request: CreateOrderRequest):
     logger.info('Request %s' % request)
+    # TODO в логировании нужен некоторый trace_id, по которому удобно собирать логи одного реквеста
     if request.priceMin > request.priceMax:
         response = CreateOrderResponse(
             success=False,
