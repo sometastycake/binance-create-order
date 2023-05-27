@@ -32,20 +32,14 @@ class NewOrderRequest(BaseSignature):
 class NewOrderResponse(BaseModel):
     symbol: str
     orderId: int
-    orderListId: int
-    clientOrderId: Optional[str]
     transactTime: int
     price: Decimal
-    origQty: Decimal
-    executedQty: Decimal
-    cummulativeQuoteQty: Decimal
     status: str
     timeInForce: TimeInForce
     type: OrderType
     side: OrderSide
-    workingTime: int
 
-    @validator('price', 'origQty', 'executedQty', 'cummulativeQuoteQty', pre=True)
+    @validator('price')
     def _dec_value(cls, value: Optional[Decimal]) -> Optional[Decimal]:
         if value is None:
             return value

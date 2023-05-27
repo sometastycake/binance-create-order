@@ -28,8 +28,8 @@ class BinanceClient:
             response_model=ExchangeInfoResponse,
         )
 
-    async def get_api_trading_status(self) -> APITradingStatusResponse:
-        params = BaseSignature()
+    async def get_api_trading_status(self, params: Optional[BaseSignature] = None) -> APITradingStatusResponse:
+        params = params or BaseSignature()
         params.sign()
         return await self._connector.request(
             path='/sapi/v1/account/apiTradingStatus',

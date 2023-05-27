@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import List
 
 from source.api.orders.handlers.errors import TooLowRequestedVolumeError, WrongPriceRangeError
-from source.api.orders.schemas import CreateOrderRequest, CreateOrderResponse, CreateOrderData
+from source.api.orders.schemas import CreateOrderData, CreateOrderRequest, CreateOrderResponse
 from source.clients.binance.client import BinanceClient
 from source.clients.binance.schemas.market.errors import NotFoundSymbolInExchangeInfo
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, Symbol
