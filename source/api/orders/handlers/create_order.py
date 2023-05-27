@@ -36,14 +36,11 @@ def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step_size: Dec
     Σ(Pi * Qi) = volume, где Pi - цена, Qi - quantity
     """
     lots = []
-    # Изначально каждому Pi присваиваем минимальное quantity
     for _ in range(len(prices)):
-        lots.append(min_quantity)
+        lots.append(min_quantity)  # Изначально каждому Pi присваиваем минимальное quantity
     current_volume = 0
-    # Считаем получившийся объем
     for price, quantity in zip(prices, lots):
-        current_volume += price * quantity
-    # Если вдруг запрошенный объем ниже рассчитанного объема
+        current_volume += price * quantity  # Считаем получившийся объем
     if volume < current_volume:
         raise TooLowRequestedVolumeError
     return lots
@@ -175,11 +172,9 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
                 quantity=quantity, price=price, timeInForce=TimeInForce.GTC,
             ),
         )
-        data = CreateOrderData(
+        orders.append(CreateOrderData(
             order_id=response.orderId,
             price=response.price,
             transact_time=response.transactTime,
-        )
-        logger.info('Order %s' % data)
-        orders.append(data)
+        ))
     return CreateOrderResponse(success=True, orders=orders)

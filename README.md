@@ -77,8 +77,9 @@ pytest tests/
 ```
 
 ```
-tests/unit/test_api/test_orders/test_create_order.py .....                              [ 27%]
-tests/unit/test_clients/test_binance/test_client.py .......                             [ 66%]
-tests/unit/test_clients/test_binance/test_schemas.py ....                               [ 88%]
-tests/unit/test_clients/test_binance/test_signature.py ..                               [100%]
+tests/integration/test_api/test_create_order.py ......                                 [ 25%]
+tests/unit/test_api/test_orders/test_create_order.py .....                             [ 45%]
+tests/unit/test_clients/test_binance/test_client.py .......                            [ 75%]
+tests/unit/test_clients/test_binance/test_schemas.py ....                              [ 91%]
+tests/unit/test_clients/test_binance/test_signature.py ..                              [100%]
 ```
