@@ -61,16 +61,16 @@ async def _process_price_range(request: CreateOrderRequest, client: BinanceClien
     """
     Filter = symbol.percent_price_by_side_filter
 
-    price = await client.get_latest_price(request.symbol)
+    price = (await client.get_latest_price(request.symbol)).price
 
     # См. фильтр PERCENT_PRICE_BY_SIDE
     # https://binance-docs.github.io/apidocs/spot/en/#filters
     if request.side is OrderSide.BUY:
-        price_up = price.price * Filter.bidMultiplierUp
-        price_down = price.price * Filter.bidMultiplierDown
+        price_up = price * Filter.bidMultiplierUp
+        price_down = price * Filter.bidMultiplierDown
     else:
-        price_up = price.price * Filter.askMultiplierUp
-        price_down = price.price * Filter.askMultiplierDown
+        price_up = price * Filter.askMultiplierUp
+        price_down = price * Filter.askMultiplierDown
 
     # Если диапазон с api полностью лежит за пределами допустимого диапазона без пересечений
     if request.priceMax <= price_down or request.priceMin >= price_up:
