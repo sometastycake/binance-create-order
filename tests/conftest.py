@@ -1,3 +1,4 @@
+import asyncio
 from decimal import Decimal
 
 import pytest
@@ -12,10 +13,14 @@ from source.enums import OrderSide, OrderType, SymbolStatus
 
 @pytest.fixture(scope='session')
 def binance_client():
-    return BinanceClient()
+    client = BinanceClient()
+    try:
+        yield client
+    finally:
+        asyncio.get_event_loop().run_until_complete(client.connector.close())
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def fast_api_app():
     return TestClient(app)
 

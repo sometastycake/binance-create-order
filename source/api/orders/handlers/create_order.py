@@ -29,9 +29,7 @@ def _calculate_price(price_min: Decimal, price_max: Decimal, tick_size: Decimal)
     return (price_dec + tick_size) - (price_dec + tick_size) % tick_size
 
 
-def _calculate_lots(
-        prices: List[Decimal], min_quantity: Decimal, step_size: Decimal, volume: Decimal,
-) -> List[Decimal]:
+def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step: Decimal, volume: Decimal) -> List[Decimal]:
     """
     На данном этапе имеем список цен prices и теперь нужно для каждой цены
     рассчитать значение quantity, т.е. необходимо выполнение условия
@@ -49,9 +47,7 @@ def _calculate_lots(
     return lots
 
 
-async def _process_price_range(
-        request: CreateOrderRequest, client: BinanceClient, symbol: Symbol,
-) -> Tuple[Decimal, Decimal]:
+async def _get_price_range(req: CreateOrderRequest, client: BinanceClient, symbol: Symbol) -> Tuple[Decimal, Decimal]:
     """
     Для лимитных ордеров есть допустимый диапазон цен, по
     которым мы можем закинуть ордер в стакан.
@@ -63,11 +59,11 @@ async def _process_price_range(
     """
     Filter = symbol.percent_price_by_side_filter
 
-    price = (await client.get_latest_price(request.symbol)).price
+    price = (await client.get_latest_price(req.symbol)).price
 
     # См. фильтр PERCENT_PRICE_BY_SIDE
     # https://binance-docs.github.io/apidocs/spot/en/#filters
-    if request.side is OrderSide.BUY:
+    if req.side is OrderSide.BUY:
         price_up = price * Filter.bidMultiplierUp
         price_down = price * Filter.bidMultiplierDown
     else:
@@ -75,14 +71,14 @@ async def _process_price_range(
         price_down = price * Filter.askMultiplierDown
 
     # Если диапазон с api полностью лежит за пределами допустимого диапазона без пересечений
-    if request.priceMax <= price_down or request.priceMin >= price_up:
+    if req.priceMax <= price_down or req.priceMin >= price_up:
         raise WrongPriceRangeError
 
     # Если допустимый диапазон цен пересекается с диапазоном, полученным в api
     # то корректируем границы цен
     # TODO нужно больше контекста задачи, это лишь мое мнение, что нужно так сделать
-    price_min = price_down if request.priceMin < price_down else request.priceMin
-    price_max = price_up if request.priceMax > price_up else request.priceMax
+    price_min = price_down if req.priceMin < price_down else req.priceMin
+    price_max = price_up if req.priceMax > price_up else req.priceMax
 
     return price_min, price_max
 
@@ -137,7 +133,7 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
         )
 
     try:
-        price_min, price_max = await _process_price_range(request, client, symbol)
+        price_min, price_max = await _get_price_range(request, client, symbol)
     except WrongPriceRangeError:
         logger.error('Wrong price range')
         return CreateOrderResponse(

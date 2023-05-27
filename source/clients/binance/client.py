@@ -18,6 +18,12 @@ class BinanceClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self._connector.close()
 
+    @property
+    def connector(self) -> BinanceConnectorAbstract:
+        if self._connector is None:
+            raise TypeError('Connector is not initialized')
+        return self._connector
+
     async def exchange_info(self, symbol: str) -> ExchangeInfoResponse:
         return await self._connector.request(
             path='/api/v3/exchangeInfo',

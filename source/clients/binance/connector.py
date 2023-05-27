@@ -1,4 +1,5 @@
 import abc
+from http import HTTPStatus
 from typing import Any, Dict, Literal, Optional, Type, TypeVar
 
 import aiohttp
@@ -10,7 +11,7 @@ from source.config import config
 ResponseModel = TypeVar('ResponseModel', bound=BaseModel)
 
 HTTP_METHOD_TYPE = Literal['GET', 'POST', 'PUT']
-RESPONSE_MODEL_TYPE = Optional[Type[ResponseModel]]
+RESPONSE_MODEL_TYPE = Type[ResponseModel]
 PARAMS_TYPE = Optional[Dict[str, Any]]
 BODY_TYPE = Optional[str]
 
@@ -26,7 +27,7 @@ class BinanceConnectorAbstract(abc.ABC):
             self,
             path: str,
             method: HTTP_METHOD_TYPE,
-            response_model: RESPONSE_MODEL_TYPE = None,
+            response_model: RESPONSE_MODEL_TYPE,
             body: BODY_TYPE = None,
             params: PARAMS_TYPE = None,
             **kwargs: Any,
@@ -61,7 +62,7 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
             self,
             path: str,
             method: HTTP_METHOD_TYPE,
-            response_model: RESPONSE_MODEL_TYPE = None,
+            response_model: RESPONSE_MODEL_TYPE,
             body: BODY_TYPE = None,
             params: PARAMS_TYPE = None,
             **kwargs: Any,
@@ -81,10 +82,9 @@ class DefaultBinanceConnector(BinanceConnectorAbstract):
             },
             **kwargs,
         )
+        if response.status in (HTTPStatus.NOT_FOUND, HTTPStatus.TOO_MANY_REQUESTS):
+            response.raise_for_status()
         content = await response.json()
-        # TODO нужно более гибко резолвить 40х, 50х так как могут быть ошибки
         if not response.ok:
             raise BinanceHttpError(**content)
-        if response_model is not None:
-            return response_model.parse_obj(content)
-        return content
+        return response_model.parse_obj(content)
