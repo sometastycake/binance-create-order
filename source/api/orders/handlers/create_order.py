@@ -43,6 +43,7 @@ def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step_size: Dec
         current_volume += price * quantity  # Считаем получившийся объем
     if volume < current_volume:
         raise TooLowRequestedVolumeError
+    # TODO пока не успеваю доделать
     return lots
 
 
