@@ -11,8 +11,8 @@ import pytest
         (100, 5, -1, 2.5, 'BUY'),
         (1005, 50, 12.5, 16.5, 'SIDE'),
         (50, 2, 15, 12, 'BUY'),
-        (0, 1, 2, 3, 'SELL')
-    ]
+        (0, 1, 2, 3, 'SELL'),
+    ],
 )
 async def test_create_order_bad_request(fast_api_app, volume, number, price_min, price_max, side):
     request = {

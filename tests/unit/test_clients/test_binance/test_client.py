@@ -91,7 +91,7 @@ async def test_get_api_trading_status_error(binance_client):
             url=re.compile(r'.+apiTradingStatus.+$'),
             payload={
                 'code': -1,
-                'msg': 'Invalid IP key or permissions'
+                'msg': 'Invalid IP key or permissions',
             },
             status=400,
         )
@@ -108,7 +108,7 @@ async def test_get_latest_price(binance_client):
             url=re.compile(r'.+ticker/price.+$'),
             payload={
                 'symbol': 'btcusdt',
-                'price': 2
+                'price': 2,
             },
         )
         response = await binance_client.get_latest_price('btcusdt')

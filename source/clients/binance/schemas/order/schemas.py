@@ -10,7 +10,7 @@ from source.enums import OrderSide, OrderType, TimeInForce
 class NewOrderRequest(BaseSignature):
     symbol: str
     side: OrderSide
-    type: OrderType
+    type: OrderType  # noqa:A003,VNE003
     quantity: Optional[Decimal] = None
     price: Optional[Decimal] = None
     timeInForce: Optional[TimeInForce] = None
@@ -36,7 +36,7 @@ class NewOrderResponse(BaseModel):
     price: Decimal
     status: str
     timeInForce: TimeInForce
-    type: OrderType
+    type: OrderType  # noqa:A003,VNE003
     side: OrderSide
 
     @validator('price')
