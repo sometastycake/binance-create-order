@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Dict, List, Type, cast
 
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, Field, validator
 
 from source.clients.binance.schemas.filters import LotSizeFilter, NotionalFilter, PercentPriceBySideFilter, PriceFilter
 from source.clients.binance.schemas.market.errors import NotFoundSymbolInExchangeInfo

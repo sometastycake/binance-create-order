@@ -12,16 +12,22 @@ from source.enums import OrderSide, OrderType, SymbolStatus, TimeInForce
 from source.logger import logger
 
 
-async def process_price_range(request: CreateOrderRequest, client: BinanceClient, symbol: Symbol):
+def _generate_price(price_min: Decimal, price_max: Decimal, tick_size: Decimal) -> Decimal:
     """
-    Для лимитных ордеров есть допустимый диапазон цен, по которым мы можем закинуть ордер в стакан.
+    В ТЗ в описании схемы сказано, что цена выбирается случайным образом.
+    """
+    price = random.uniform(
+        a=float(price_min),
+        b=float(price_max),
+    )
+    price = Decimal(price).quantize(Decimal('0.000000'))
+    return (price + tick_size) - (price + tick_size) % tick_size
 
-    1. Получить последнюю цену актива
-    2. Расчитать допустимый диапазон по мультипликаторам из фильтра
-    3. Если диапазон с api полностью лежит за пределами допустимого диапазона без пересечений,
-       то выдаем ошибку
-    4. Если допустимый диапазон цен пересекается с диапазоном, полученным в api
-       то корректируем границы цен
+
+async def _process_price_range(request: CreateOrderRequest, client: BinanceClient, symbol: Symbol):
+    """
+    Для лимитных ордеров есть допустимый диапазон цен, по
+    которым мы можем закинуть ордер в стакан.
     """
     _filter = symbol.percent_price_by_side_filter
 
@@ -34,9 +40,12 @@ async def process_price_range(request: CreateOrderRequest, client: BinanceClient
         price_up = price.price * _filter.askMultiplierUp
         price_down = price.price * _filter.askMultiplierDown
 
+    # Если диапазон с api полностью лежит за пределами допустимого диапазона без пересечений
     if request.priceMax <= price_down or request.priceMin >= price_up:
         raise WrongPriceRangeError
 
+    # Если допустимый диапазон цен пересекается с диапазоном, полученным в api
+    # то корректируем границы цен
     price_min = price_down if request.priceMin < price_down else request.priceMin
     price_max = price_up if request.priceMax > price_up else request.priceMax
 
@@ -79,16 +88,12 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
         )
 
     try:
-        price_min, price_max = await process_price_range(request, client, symbol)
+        price_min, price_max = await _process_price_range(request, client, symbol)
     except WrongPriceRangeError:
         return CreateOrderResponse(
             success=False,
             error='Wrong price range',
         )
-
-    # Параметры ордера, такие как price и quantity должны следовать условиям
-    # которые описаны в фильтрах
-    # https://binance-docs.github.io/apidocs/spot/en/#filters
 
     step_size = symbol.lot_size_filter.stepSize
     tick_size = symbol.price_filter.tickSize
@@ -97,16 +102,23 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
     quantity = symbol.notional_filter.minNotional / request.priceMin
     quantity = (quantity + step_size) - (quantity + step_size) % step_size
 
-    orders = []
-    for _ in range(request.number):
-        # В ТЗ в описании схемы сказано, что цена выбирается случайным образом
-        price = random.uniform(
-            a=float(price_min),
-            b=float(price_max),
+    if request.volume < price_min * quantity:
+        return CreateOrderResponse(
+            success=False,
+            error='Too low requested volume'
         )
-        price = Decimal(price).quantize(Decimal('0.000000'))
-        price = (price + tick_size) - (price + tick_size) % tick_size
 
+    prices = []
+    for _ in range(request.number):
+        prices.append(_generate_price(price_min, price_max, tick_size))
+
+    # На данном этапе имеем список цен prices и теперь нужно
+    # для каждой цены рассчитать значение quantity, т.е.
+    # sum(Pi * Qi) = volume, где Pi - цена, Qi - quantity
+
+    orders = []
+    volume = request.volume
+    for price in prices:
         response = await client.create_new_order(
             request=NewOrderRequest(
                 symbol=request.symbol, side=request.side, type=OrderType.LIMIT,
