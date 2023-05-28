@@ -7,7 +7,7 @@ import pytest
 from aioresponses import aioresponses
 
 from source.api.orders.handlers.create_order import _calculate_lots, _get_price_range, create_order_handler  # noqa
-from source.api.orders.handlers.errors import TooLowRequestedVolumeError
+from source.api.orders.handlers.errors import TooLowRequestedVolumeError, WrongPriceRangeError
 from source.api.orders.schemas import CreateOrderResponse
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
 from source.clients.binance.schemas.wallet.schemas import APITradingStatus, APITradingStatusResponse
@@ -88,6 +88,7 @@ def test_calculate_lots_too_low_requested_volume_error():
         (10, Decimal(1), Decimal(100), Decimal(2), Decimal(50)),
     ],
 )
+@pytest.mark.parametrize('side', [OrderSide.BUY, OrderSide.SELL])
 async def test_get_price_range(
         create_order_request,
         binance_client,
@@ -98,6 +99,7 @@ async def test_get_price_range(
         price_max,
         price_min_result,
         price_max_result,
+        side,
 ):
     monkeypatch.setattr(
         target=binance_exchange_info_symbol,
@@ -113,7 +115,7 @@ async def test_get_price_range(
             },
         ],
     )
-    monkeypatch.setattr(create_order_request, 'side', OrderSide.BUY)
+    monkeypatch.setattr(create_order_request, 'side', side)
     monkeypatch.setattr(create_order_request, 'priceMin', price_min)
     monkeypatch.setattr(create_order_request, 'priceMax', price_max)
     with aioresponses() as mock:
@@ -131,3 +133,43 @@ async def test_get_price_range(
         )
         assert price_min_actual == price_min_result
         assert price_max_actual == price_max_result
+
+
+@pytest.mark.asyncio
+async def test_get_price_range_wrong_price_range_error(
+        create_order_request,
+        binance_client,
+        binance_exchange_info_symbol,
+        monkeypatch,
+):
+    monkeypatch.setattr(
+        target=binance_exchange_info_symbol,
+        name='filters',
+        value=[
+            {
+                'filterType': 'PERCENT_PRICE_BY_SIDE',
+                'bidMultiplierUp': '5',
+                'bidMultiplierDown': '0.2',
+                'askMultiplierUp': '5',
+                'askMultiplierDown': '0.2',
+                'avgPriceMins': 5,
+            },
+        ],
+    )
+    monkeypatch.setattr(create_order_request, 'side', OrderSide.SELL)
+    monkeypatch.setattr(create_order_request, 'priceMin', Decimal(50))
+    monkeypatch.setattr(create_order_request, 'priceMax', Decimal(60))
+    with aioresponses() as mock:
+        mock.get(
+            url=re.compile(r'.+/api/v3/ticker/price.+'),
+            payload={
+                'symbol': 'btcusdt',
+                'price': 2,
+            },
+        )
+        with pytest.raises(WrongPriceRangeError):
+            await _get_price_range(
+                req=create_order_request,
+                client=binance_client,
+                symbol=binance_exchange_info_symbol,
+            )
