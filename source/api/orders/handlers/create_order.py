@@ -43,7 +43,20 @@ def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step: Decimal,
         current_volume += price * quantity  # Считаем получившийся объем
     if volume < current_volume:
         raise TooLowRequestedVolumeError
-    # TODO пока не успеваю доделать
+    # Способ разбиения в "лоб", но вполне рабочий
+    while current_volume + step < volume:
+        for i in range(len(lots)):
+            # Если можем в оставшийся объем вместить prices[i] * min_quantity
+            if current_volume + prices[i] * min_quantity <= volume:
+                lots[i] += min_quantity
+                current_volume += prices[i] * min_quantity
+            else:
+                remaining_quantity = (volume - current_volume) / prices[i]
+                remaining_quantity = remaining_quantity - remaining_quantity % step
+                # Добиваем оставшийся объем
+                if current_volume + prices[i] * remaining_quantity < volume:
+                    lots[i] += remaining_quantity
+                    current_volume += prices[i] * remaining_quantity
     return lots
 
 
@@ -89,7 +102,7 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
 
     Важно:
         Не полностью понял ТЗ, особенно момент с amountDif, потому
-        сделал просто разбиение обшего объема на request.number ордеров =(
+        сделал просто разбиение обшего объема на request.number ордеров
     """
     status: APITradingStatusResponse = await client.get_api_trading_status()
     if status.data.isLocked:
@@ -163,6 +176,8 @@ async def create_order_handler(request: CreateOrderRequest, client: BinanceClien
 
     orders = []
     for price, quantity in zip(prices, lots):
+        logger.info(f'Create order price={price} quantity={quantity}')
+
         # TODO тут остаются неопределенные моменты
         # Например, если ордеров много и есть вариант попасть на rate limits
         # по этой же причине нельзя закинуть реквесты в asyncio.gather

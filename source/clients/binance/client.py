@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Any, Optional
 
 from source.clients.binance.connector import BinanceConnectorAbstract, DefaultBinanceConnector
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse, LatestPriceResponse
