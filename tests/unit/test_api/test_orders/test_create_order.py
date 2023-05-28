@@ -5,11 +5,12 @@ import freezegun
 import pytest
 from aioresponses import aioresponses
 
-from source.api.orders.handlers.create_order import create_order_handler
+from source.api.orders.handlers.create_order import _calculate_lots, create_order_handler  # noqa
 from source.api.orders.schemas import CreateOrderResponse
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
 from source.clients.binance.schemas.wallet.schemas import APITradingStatus, APITradingStatusResponse
 from source.enums import OrderType, SymbolStatus
+from tests.unit.test_api.test_orders.utils import get_parametrize_for_calculate_lots_test
 
 
 def mock_exchange_info_response(mock: aioresponses, payload: ExchangeInfoResponse) -> None:
@@ -55,3 +56,12 @@ async def test_create_order_handler_api_status_disabled(binance_client, create_o
         success=False,
         error='API trading function is locked',
     )
+
+
+@pytest.mark.parametrize(
+    'prices, min_quantity, step, volume, expected_lots',
+    get_parametrize_for_calculate_lots_test(),
+)
+def test_calculate_lots(prices, min_quantity, step, volume, expected_lots):
+    actual_lots = _calculate_lots(prices, min_quantity, step, volume)
+    assert actual_lots == expected_lots
