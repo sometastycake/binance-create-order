@@ -51,16 +51,16 @@ def _calculate_lots(prices: List[Decimal], min_quantity: Decimal, step: Decimal,
             if current_volume + prices[i] * min_quantity <= volume:
                 lots[i] += min_quantity
                 current_volume += prices[i] * min_quantity
-            else:
-                if min_quantity == step:
-                    break
-                remaining_quantity = (volume - current_volume) / prices[i]
-                remaining_quantity = remaining_quantity - remaining_quantity % step
-                remaining_quantity = remaining_quantity.quantize(Decimal('0.000000'))
-                # Добиваем оставшийся объем
-                if remaining_quantity and current_volume + prices[i] * remaining_quantity <= volume:
-                    lots[i] += remaining_quantity
-                    current_volume += prices[i] * remaining_quantity
+                continue
+            if min_quantity == step:
+                break
+            remaining_quantity = (volume - current_volume) / prices[i]
+            remaining_quantity -= remaining_quantity % step
+            remaining_quantity = remaining_quantity.quantize(Decimal('0.000000'))
+            # Добиваем оставшийся объем
+            if remaining_quantity and current_volume + prices[i] * remaining_quantity <= volume:
+                lots[i] += remaining_quantity
+                current_volume += prices[i] * remaining_quantity
         # Если вдруг за полную итерацию не смогли найти такое Qi, что
         # current_volume + Pi * Qi <= volume, то выходим
         if current_volume == current_volume_before:
