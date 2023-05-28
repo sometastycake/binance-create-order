@@ -62,6 +62,20 @@ _parametrize = [
         volume=Decimal(7),
         expected_lots=convert_values_list_to_decimal([14]),
     ),
+    _ParamModel(
+        prices=convert_values_list_to_decimal([0.5, 0.9, 0.4, 0.7]),
+        min_quantity=Decimal(45),
+        step=Decimal(0.8),
+        volume=Decimal(2945.125),
+        expected_lots=convert_values_list_to_decimal([1210, 1170, 1170, 1170]),
+    ),
+    _ParamModel(
+        prices=convert_values_list_to_decimal([21150.5, 21560.68, 21420, 21380.4]),
+        min_quantity=Decimal(1),
+        step=Decimal(1),
+        volume=Decimal(2945040.125),
+        expected_lots=convert_values_list_to_decimal([35, 34, 34, 34]),
+    ),
 ]
 
 
