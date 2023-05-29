@@ -6,7 +6,12 @@ import freezegun
 import pytest
 from aioresponses import aioresponses
 
-from source.api.orders.handlers.create_order import _calculate_lots, _get_price_range, create_order_handler  # noqa
+from source.api.orders.handlers.create_order import (
+    _calculate_lots,
+    _calculate_price,
+    _get_price_range,
+    create_order_handler,
+)
 from source.api.orders.handlers.errors import TooLowRequestedVolumeError, WrongPriceRangeError
 from source.api.orders.schemas import CreateOrderResponse
 from source.clients.binance.schemas.market.schemas import ExchangeInfoResponse
@@ -173,3 +178,16 @@ async def test_get_price_range_wrong_price_range_error(
                 client=binance_client,
                 symbol=binance_exchange_info_symbol,
             )
+
+
+@pytest.mark.parametrize(
+    'price_min, price_max, tick_size', [
+        (Decimal(2), Decimal(10), Decimal(1))
+    ]
+)
+def test_calculate_price(price_min, price_max, tick_size):
+    for _ in range(30):
+        price = _calculate_price(price_min, price_max, tick_size)
+        assert isinstance(price, Decimal)
+        assert price_min <= price <= price_max
+        assert price % tick_size == 0
